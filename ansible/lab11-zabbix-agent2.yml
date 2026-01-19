@@ -1,0 +1,44 @@
+- name: LAB 11 - Install and configure Zabbix Agent2
+  hosts: local
+  become: true
+
+  vars:
+    zbx_agent_hostname: "zbx-agent-host"
+
+  tasks:
+    - name: Get Zabbix Server container IP
+      command: docker inspect -f "{{'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'}}" zbx-server
+      register: zbx_server_ip_cmd
+      changed_when: false
+
+
+    - name: Set Zabbix Server IP fact
+      set_fact:
+        zbx_server_ip: "{{ zbx_server_ip_cmd.stdout }}"
+
+    - name: Install Zabbix Agent2
+      apt:
+        name: zabbix-agent2
+        state: present
+        update_cache: true
+
+    - name: Deploy zabbix_agent2.conf
+      template:
+        src: ansible/templates/zabbix_agent2.conf.j2
+        dest: /etc/zabbix/zabbix_agent2.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart zabbix-agent2
+
+    - name: Ensure zabbix-agent2 service is enabled and running
+      systemd:
+        name: zabbix-agent2
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart zabbix-agent2
+      systemd:
+        name: zabbix-agent2
+        state: restarted
