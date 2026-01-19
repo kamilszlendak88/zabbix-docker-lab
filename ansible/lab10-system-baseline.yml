@@ -1,0 +1,57 @@
+- name: LAB 10 - System baseline configuration
+  hosts: local
+  become: true
+
+  vars:
+    swap_file: /swapfile
+    swap_size_mb: 2048
+    baseline_packages:
+      - curl
+      - git
+      - ca-certificates
+      - htop
+
+  tasks:
+    - name: Ensure baseline packages are installed
+      apt:
+        name: "{{ baseline_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Check if swap file exists
+      stat:
+        path: "{{ swap_file }}"
+      register: swap_stat
+
+    - name: Create swap file
+      command: fallocate -l {{ swap_size_mb }}M {{ swap_file }}
+      when: not swap_stat.stat.exists
+
+    - name: Set swap file permissions
+      file:
+        path: "{{ swap_file }}"
+        owner: root
+        group: root
+        mode: '0600'
+      when: not swap_stat.stat.exists
+
+    - name: Format swap file
+      command: mkswap {{ swap_file }}
+      when: not swap_stat.stat.exists
+
+    - name: Enable swap
+      command: swapon {{ swap_file }}
+      when: not swap_stat.stat.exists
+
+    - name: Ensure swap is in fstab
+      mount:
+        name: none
+        src: "{{ swap_file }}"
+        fstype: swap
+        opts: sw
+        state: present
+    - name: Enable swap if swapfile exists
+      command: swapon {{ swap_file }}
+      when: swap_stat.stat.exists
+      changed_when: false
+      failed_when: false
