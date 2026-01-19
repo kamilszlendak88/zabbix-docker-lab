@@ -16,3 +16,11 @@ Configuration management is reproducible and idempotent.
 ## Verification
 - systemctl status zabbix-agent2: active (running)
 - ss -lntp: port 10050 is listening
+
+Connectivity was verified from the Zabbix Server container perspective:
+- Default gateway from `zbx-server`: 172.18.0.1
+- TCP check: `nc -vz 172.18.0.1 10050` -> open
+
+Agent status on the host:
+- `systemctl status zabbix-agent2` -> active (running)
+- `ss -lntp | grep 10050` -> LISTEN
